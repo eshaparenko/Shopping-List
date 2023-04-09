@@ -6,8 +6,14 @@ let itemFilter = document.querySelector('.filter');
 let filterInput = document.querySelector('.filter')
 
 
+function displayItems() {
+    getItemsFromLocalStorage().forEach(item => {
+        renderItems(item)
+    })
+}
+
 function checkUI() {
-    let items = itemList.querySelectorAll('li');
+    let items = getItemsFromLocalStorage();
     if (items.length === 0) {
         clearButton.style.display = 'none';
         itemFilter.style.display = 'none'
@@ -16,17 +22,16 @@ function checkUI() {
         itemFilter.style.display = 'block'
     }
 }
- 
-//Event Listener on form submit
-form.addEventListener('submit', (e) => {
+
+function renderItems(text) {
     //Create new List Item
-    if (!itemInput.value.trim()) {
+    if (!text.trim()) {
         alert('Please add na item')
         return;
     }
 
     let li = document.createElement('li');
-    li.textContent = itemInput.value.trim();
+    li.textContent = text
     let button = document.createElement('button');
     button.className = 'remove-item btn-link text-red';
     let i = document.createElement('i');
@@ -36,40 +41,68 @@ form.addEventListener('submit', (e) => {
 
     //Add new List Item to the List
     itemList.appendChild(li);
+}
 
-    checkUI()
+function addItemToLocalStorage(item) {
+    let itemsFromStorage = getItemsFromLocalStorage()
+    itemsFromStorage.push(item)
+    localStorage.setItem('shopItems', JSON.stringify(itemsFromStorage))
+}
+
+function removeItemFromLocalStorage(item) {
+    let itemsFromStorage = getItemsFromLocalStorage()
+    itemsFromStorage = itemsFromStorage.filter(i => i !==item)
+    localStorage.setItem('shopItems', JSON.stringify(itemsFromStorage))
+}
+
+function getItemsFromLocalStorage() {
+    let itemsFromStorage;
+    if (localStorage.getItem('shopItems') === null) {
+        itemsFromStorage = [];
+    } else {
+        itemsFromStorage = JSON.parse(localStorage.getItem('shopItems'))
+    }
+    return itemsFromStorage;
+}
+
+let submitForm = (e) => {
+    e.preventDefault();
+    let item = itemInput.value.trim();
+    //Add Item to the storage
+    addItemToLocalStorage(item);
+    renderItems(item);
+    checkUI();
     //Clear Item Input
     itemInput.value = ''
+}
 
-    e.preventDefault();
-})
-
-//Event Listener on Remove Item
-itemList.addEventListener('click', (e) => {
+function onClickRemoveIcon(e) {
     if (e.target.parentElement.classList.contains('remove-item')) {
-        if(confirm('Are you sure?')) {
-            e.target.parentElement.parentElement.remove();
-            checkUI();
-        }        
+        removeItem(e.target.parentElement.parentElement)
     }
-})
+}
 
-//EL on Remove All 
-clearButton.addEventListener('click', () => {
-    while (itemList.firstChild) {
-        itemList.removeChild(itemList.firstChild)
+function removeItem(item) {
+    if(confirm('Are you sure?')) {
+        item.remove();
+        removeItemFromLocalStorage(item.textContent)
+        checkUI();
     }
-    checkUI();
-})
+}
 
-//EL on page
-document.addEventListener('DOMContentLoaded', checkUI);
+let removeAll = () => {
+    if(confirm('Are you sure?')) {
+        while (itemList.firstChild) {
+            itemList.removeChild(itemList.firstChild)
+        }
+        //Clear from Local Storage
+        localStorage.removeItem('shopItems')
+        checkUI();
+    }   
+}
 
-
-//EL on filter
-filterInput.addEventListener('input', (e) => {
+let filterItems = (e) => {
     let text = e.target.value.toLowerCase();
-
     let items = itemList.querySelectorAll('li')
     items.forEach(item => {
         let itemName = item.firstChild.textContent.toLowerCase()
@@ -79,9 +112,26 @@ filterInput.addEventListener('input', (e) => {
             item.style.display = 'none'
         }
     })
+}
 
-})
+function init() {
+    //Event Listener on form submit
+    form.addEventListener('submit', submitForm)
 
+    //Event Listener on Remove Item
+    itemList.addEventListener('click', onClickRemoveIcon)
 
+    //EL on Remove All 
+    clearButton.addEventListener('click', removeAll)
 
+    //EL on page
+    document.addEventListener('DOMContentLoaded', displayItems);
+
+    //EL on filter
+    filterInput.addEventListener('input', filterItems)
+
+    checkUI()
+}
+
+init()
 
